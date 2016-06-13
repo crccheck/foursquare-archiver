@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 def main(paginate=False):
     offset = 0
 
+    if not os.path.isdir('data'):
+        os.mkdir('data')
+
     while True:
         response = requests.get(URL_FORMAT(TOKEN, offset))
         items = response.json()['response']['checkins']['items']
@@ -31,11 +34,11 @@ def main(paginate=False):
 
         for item in items:
             timestamp = datetime.datetime.utcfromtimestamp(item['createdAt'])
-            filepath = '{}/{}-{}.json'.format(
+            filepath = 'data/{}/{}-{}.json'.format(
                 timestamp.year, item['createdAt'], item['id'])
 
-            if not os.path.isdir(str(timestamp.year)):
-                os.mkdir(str(timestamp.year))
+            if not os.path.isdir(os.path.join('data', str(timestamp.year))):
+                os.mkdir(os.path.join('data', str(timestamp.year)))
 
             with open(filepath, 'w') as fp:
                 json.dump(item, fp, indent=2)
