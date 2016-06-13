@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """
+Foursquare Archiver
 
+TODO: specify data directory
+TODO: follow pagination option
+TODO: token from command line
 """
 import datetime
 import logging
