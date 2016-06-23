@@ -8,3 +8,6 @@ install: ## Install requirements
 .PHONY: requirements.txt
 requirements.txt: ## Compile requirements.txt
 	pip-compile --upgrade --output-file $@ requirements.in
+
+docker/build: ## Build the Docker image
+	docker build -t crccheck/foursquare-archiver .
