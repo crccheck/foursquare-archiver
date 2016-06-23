@@ -22,7 +22,7 @@ Set the `FOURSQUARE_OAUTH_TOKEN` environment variable
 Usage
 -----
 
-Run `main.py`. A `data` directory will be created
+Run `main.py`. A `data` directory will be created if it does not already exist.
 
     /path/to/main.py
 
