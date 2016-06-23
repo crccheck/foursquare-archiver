@@ -4,11 +4,11 @@ Foursquare Archiver
 
 Usage: ./main.py
 
-TODO: specify data directory
 TODO: follow pagination option
 TODO: token from command line
 TODO: better output when script is run
 """
+import argparse
 import datetime
 import logging
 import json
@@ -22,15 +22,18 @@ URL_FORMAT = ('https://api.foursquare.com/v2/users/self/checkins?'
 
 TOKEN = os.getenv('FOURSQUARE_OAUTH_TOKEN')
 
-
 logger = logging.getLogger(__name__)
+parser = argparse.ArgumentParser(description='Archive your Foursquare checkins')
+parser.add_argument('--data', dest='data_directory', default='data',
+                    help='Path to directory to store JSON (default: data)')
 
 
-def main(paginate=False):
+def main(data_directory='data', paginate=False):
     offset = 0
 
-    if not os.path.isdir('data'):
-        os.mkdir('data')
+    if not os.path.isdir(data_directory):
+        logging.debug('Creating data directory %s', data_directory)
+        os.mkdir(data_directory)
 
     while True:
         response = requests.get(URL_FORMAT(TOKEN, offset))
@@ -41,11 +44,11 @@ def main(paginate=False):
 
         for item in items:
             timestamp = datetime.datetime.utcfromtimestamp(item['createdAt'])
-            filepath = 'data/{}/{}-{}.json'.format(
-                timestamp.year, item['createdAt'], item['id'])
+            filepath = '{}/{}/{}-{}.json'.format(
+                data_directory, timestamp.year, item['createdAt'], item['id'])
 
-            if not os.path.isdir(os.path.join('data', str(timestamp.year))):
-                os.mkdir(os.path.join('data', str(timestamp.year)))
+            if not os.path.isdir(os.path.join(data_directory, str(timestamp.year))):
+                os.mkdir(os.path.join(data_directory, str(timestamp.year)))
 
             with open(filepath, 'w') as fp:
                 json.dump(item, fp, indent=2)
@@ -57,4 +60,5 @@ def main(paginate=False):
 
 
 if __name__ == '__main__':
-    main()
+    args = parser.parse_args()
+    main(data_directory=args.data_directory)
