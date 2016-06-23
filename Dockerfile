@@ -9,4 +9,4 @@ WORKDIR /app
 
 VOLUME ["/app/data"]
 
-CMD ["python", "main.py"]
+ENTRYPOINT ["python", "main.py"]

@@ -30,4 +30,4 @@ Run `main.py`. A `data` directory will be created
 
 You can also run this via Docker with something like:
 
-    docker run -e FOURSQUARE_OAUTH_TOKEN=AAAABBBBBCCCCDDDD -v /tmp/data:/app/data crccheck/foursquare-archiver
+    docker run -e FOURSQUARE_OAUTH_TOKEN=AAAABBBBBCCCCDDDD -v /tmp/data:/app/data:rw crccheck/foursquare-archiver --data=/app/data
