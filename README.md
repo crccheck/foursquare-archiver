@@ -20,7 +20,7 @@ Set the `FOURSQUARE_OAUTH_TOKEN` environment variable
 
 
 Usage
-=====
+-----
 
 Run `main.py`. A `data` directory will be created
 
