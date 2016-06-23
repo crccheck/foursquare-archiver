@@ -4,11 +4,11 @@ Foursquare Archiver
 
 Usage: ./main.py
 
-TODO: specify data directory
 TODO: follow pagination option
 TODO: token from command line
 TODO: better output when script is run
 """
+import argparse
 import datetime
 import logging
 import json
@@ -22,8 +22,10 @@ URL_FORMAT = ('https://api.foursquare.com/v2/users/self/checkins?'
 
 TOKEN = os.getenv('FOURSQUARE_OAUTH_TOKEN')
 
-
 logger = logging.getLogger(__name__)
+parser = argparse.ArgumentParser(description='Archive your Foursquare checkins')
+parser.add_argument('--data', dest='data_directory', default='data',
+                    help='Path to directory to store JSON (default: data)')
 
 
 def main(data_directory='data', paginate=False):
@@ -58,4 +60,5 @@ def main(data_directory='data', paginate=False):
 
 
 if __name__ == '__main__':
-    main()
+    args = parser.parse_args()
+    main(data_directory=args.data_directory)
