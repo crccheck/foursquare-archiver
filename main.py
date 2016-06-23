@@ -2,6 +2,8 @@
 """
 Foursquare Archiver
 
+Usage: ./main.py
+
 TODO: specify data directory
 TODO: follow pagination option
 TODO: token from command line
