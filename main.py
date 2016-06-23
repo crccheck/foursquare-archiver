@@ -26,11 +26,12 @@ TOKEN = os.getenv('FOURSQUARE_OAUTH_TOKEN')
 logger = logging.getLogger(__name__)
 
 
-def main(paginate=False):
+def main(data_directory='data', paginate=False):
     offset = 0
 
-    if not os.path.isdir('data'):
-        os.mkdir('data')
+    if not os.path.isdir(data_directory):
+        logging.debug('Creating data directory %s', data_directory)
+        os.mkdir(data_directory)
 
     while True:
         response = requests.get(URL_FORMAT(TOKEN, offset))
@@ -41,11 +42,11 @@ def main(paginate=False):
 
         for item in items:
             timestamp = datetime.datetime.utcfromtimestamp(item['createdAt'])
-            filepath = 'data/{}/{}-{}.json'.format(
-                timestamp.year, item['createdAt'], item['id'])
+            filepath = '{}/{}/{}-{}.json'.format(
+                data_directory, timestamp.year, item['createdAt'], item['id'])
 
-            if not os.path.isdir(os.path.join('data', str(timestamp.year))):
-                os.mkdir(os.path.join('data', str(timestamp.year)))
+            if not os.path.isdir(os.path.join(data_directory, str(timestamp.year))):
+                os.mkdir(os.path.join(data_directory, str(timestamp.year)))
 
             with open(filepath, 'w') as fp:
                 json.dump(item, fp, indent=2)
