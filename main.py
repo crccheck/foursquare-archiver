@@ -2,9 +2,12 @@
 """
 Foursquare Archiver
 
+Usage: ./main.py
+
 TODO: specify data directory
 TODO: follow pagination option
 TODO: token from command line
+TODO: better output when script is run
 """
 import datetime
 import logging

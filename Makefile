@@ -4,8 +4,10 @@ help: ## Shows this help
 install: ## Install requirements
 	@[ -n "${VIRTUAL_ENV}" ] || (echo "ERROR: This should be run from a virtualenv" && exit 1)
 	pip install -r requirements.txt
-	npm install
 
 .PHONY: requirements.txt
 requirements.txt: ## Compile requirements.txt
 	pip-compile --upgrade --output-file $@ requirements.in
+
+docker/build: ## Build the Docker image
+	docker build -t crccheck/foursquare-archiver .
