@@ -16,10 +16,6 @@ import os
 
 import requests
 
-
-URL_FORMAT = ('https://api.foursquare.com/v2/users/self/checkins?'
-              'limit=250&oauth_token={}&v=20160612&offset={}'.format)
-
 TOKEN = os.getenv('FOURSQUARE_OAUTH_TOKEN')
 
 logger = logging.getLogger(__name__)
@@ -28,7 +24,9 @@ parser.add_argument('--data', dest='data_directory', default='data',
                     help='Path to directory to store JSON (default: data)')
 
 
-def main(data_directory='data', paginate=False):
+def download_self_checkins(data_directory='data', paginate=False):
+    url_format = ('https://api.foursquare.com/v2/users/self/checkins?'
+                  'limit=250&oauth_token={}&v=20160612&offset={}'.format)
     offset = 0
 
     if not os.path.isdir(data_directory):
@@ -36,7 +34,7 @@ def main(data_directory='data', paginate=False):
         os.mkdir(data_directory)
 
     while True:
-        response = requests.get(URL_FORMAT(TOKEN, offset))
+        response = requests.get(url_format(TOKEN, offset))
         items = response.json()['response']['checkins']['items']
         if not items:
             logger.info('End of the rainbow reached. %s', offset)
@@ -61,4 +59,4 @@ def main(data_directory='data', paginate=False):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    main(data_directory=args.data_directory)
+    download_self_checkins(data_directory=args.data_directory)
