@@ -13,6 +13,7 @@ import datetime
 import logging
 import json
 import os
+import sys
 from glob import glob
 
 import requests
@@ -55,6 +56,10 @@ def download_self_checkins(data_directory='data', paginate=False):
 
         if not paginate:
             break
+
+    if sys.stdout.isatty():
+        print('Self: Downloaded: {}'
+              .format(len(items)))
 
 
 def get_most_recent(directory):
@@ -99,6 +104,10 @@ def download_friend_checkins(data_directory='data', paginate=False):
         with open(filepath, 'w') as fp:
             json.dump(item, fp, indent=2)
         os.utime(filepath, times=(item['createdAt'], item['createdAt']))
+
+    if sys.stdout.isatty():
+        print('Friends: Downloaded: {} using timestamp: {}'
+              .format(len(items), latestTimestamp))
 
 
 if __name__ == '__main__':
