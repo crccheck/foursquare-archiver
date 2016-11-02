@@ -13,6 +13,7 @@ import datetime
 import logging
 import json
 import os
+from glob import glob
 
 import requests
 
@@ -56,14 +57,36 @@ def download_self_checkins(data_directory='data', paginate=False):
             break
 
 
-def download_friend_checkins(data_directory='data', paginate=False):
-    url_format = ('https://api.foursquare.com/v2/checkins/recent?'
-                  'limit=100&oauth_token={}&v=20161101'.format)
+def get_most_recent(directory):
+    """Get the createdAt timestamp of the most recent data file."""
+    # This isn't the most efficient way, but it is terse
+    try:
+        all_json = glob(os.path.join(directory, '**/*.json'), recursive=True)
+        most_recent = sorted(all_json)[-1]
+        return os.path.basename(most_recent).split('-')[0]
+    except IndexError:
+        return None
 
+
+def download_friend_checkins(data_directory='data', paginate=False):
+    url = 'https://api.foursquare.com/v2/checkins/recent'
+    params = {
+        'limit': 100,
+        'oauth_token': TOKEN,
+        'v': '20161101'
+    }
+    latestTimestamp = get_most_recent(os.path.join(data_directory, 'friends'))
+    if latestTimestamp:
+        params['afterTimestamp'] = latestTimestamp
     response = requests.get(
-        url_format(TOKEN),
+        url,
+        params=params,
         headers={'user-agent': 'foursquare-archiver/0'},
     )
+    if not response.ok:
+        logging.error(response.json())
+        return
+
     items = response.json()['response']['recent']
     for item in items:
         timestamp = datetime.datetime.utcfromtimestamp(item['createdAt'])
