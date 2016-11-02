@@ -104,9 +104,5 @@ def download_friend_checkins(data_directory='data', paginate=False):
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    if not os.path.isdir(args.data_directory):
-        logging.debug('Creating data directory %s', args.data_directory)
-        os.mkdir(args.data_directory)
-
     download_self_checkins(data_directory=args.data_directory)
     download_friend_checkins(data_directory=args.data_directory)
