@@ -30,7 +30,10 @@ def download_self_checkins(data_directory='data', paginate=False):
     offset = 0
 
     while True:
-        response = requests.get(url_format(TOKEN, offset))
+        response = requests.get(
+            url_format(TOKEN, offset),
+            headers={'user-agent': 'foursquare-archiver/0'},
+        )
         items = response.json()['response']['checkins']['items']
         if not items:
             logger.info('End of the rainbow reached. %s', offset)
