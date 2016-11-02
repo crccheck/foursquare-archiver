@@ -26,14 +26,34 @@ parser.add_argument('--data', dest='data_directory', default='data',
                     help='Path to directory to store JSON (default: data)')
 
 
+def get_most_recent(directory):
+    """Get the createdAt timestamp of the most recent data file."""
+    # This isn't the most efficient way, but it is terse
+    try:
+        all_json = glob(os.path.join(directory, '**/*.json'), recursive=True)
+        most_recent = sorted(all_json)[-1]
+        return os.path.basename(most_recent).split('-')[0]
+    except IndexError:
+        return None
+
+
 def download_self_checkins(data_directory='data', paginate=False):
-    url_format = ('https://api.foursquare.com/v2/users/self/checkins?'
-                  'limit=250&oauth_token={}&v=20160612&offset={}'.format)
+    url = 'https://api.foursquare.com/v2/users/self/checkins'
+    params = {
+        'limit': 250,
+        'oauth_token': TOKEN,
+        'v': '20160612',
+    }
+    latestTimestamp = get_most_recent(os.path.join(data_directory, 'self'))
+    if latestTimestamp:
+        params['afterTimestamp'] = latestTimestamp
     offset = 0
 
     while True:
+        params['offset'] = offset
         response = requests.get(
-            url_format(TOKEN, offset),
+            url,
+            params=params,
             headers={'user-agent': 'foursquare-archiver/0'},
         )
         items = response.json()['response']['checkins']['items']
@@ -58,19 +78,8 @@ def download_self_checkins(data_directory='data', paginate=False):
             break
 
     if sys.stdout.isatty():
-        print('Self: Downloaded: {}'
-              .format(len(items)))
-
-
-def get_most_recent(directory):
-    """Get the createdAt timestamp of the most recent data file."""
-    # This isn't the most efficient way, but it is terse
-    try:
-        all_json = glob(os.path.join(directory, '**/*.json'), recursive=True)
-        most_recent = sorted(all_json)[-1]
-        return os.path.basename(most_recent).split('-')[0]
-    except IndexError:
-        return None
+        print('Self: Downloaded: {} using timestamp: {}'
+              .format(len(items), latestTimestamp))
 
 
 def download_friend_checkins(data_directory='data', paginate=False):
@@ -78,7 +87,7 @@ def download_friend_checkins(data_directory='data', paginate=False):
     params = {
         'limit': 100,
         'oauth_token': TOKEN,
-        'v': '20161101'
+        'v': '20161101',
     }
     latestTimestamp = get_most_recent(os.path.join(data_directory, 'friends'))
     if latestTimestamp:
