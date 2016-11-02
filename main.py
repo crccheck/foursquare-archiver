@@ -41,11 +41,11 @@ def download_self_checkins(data_directory='data', paginate=False):
 
         for item in items:
             timestamp = datetime.datetime.utcfromtimestamp(item['createdAt'])
-            filepath = '{}/{}/{}-{}.json'.format(
-                data_directory, timestamp.year, item['createdAt'], item['id'])
+            filepath = '{}/self/{}/{:02}/{}-{}.json'.format(
+                data_directory, timestamp.year, timestamp.month, item['createdAt'], item['id'])
 
-            if not os.path.isdir(os.path.join(data_directory, str(timestamp.year))):
-                os.mkdir(os.path.join(data_directory, str(timestamp.year)))
+            if not os.path.isdir(os.path.dirname(filepath)):
+                os.makedirs(os.path.dirname(filepath))
 
             with open(filepath, 'w') as fp:
                 json.dump(item, fp, indent=2)
@@ -56,6 +56,28 @@ def download_self_checkins(data_directory='data', paginate=False):
             break
 
 
+def download_friend_checkins(data_directory='data', paginate=False):
+    url_format = ('https://api.foursquare.com/v2/checkins/recent?'
+                  'limit=100&oauth_token={}&v=20161101'.format)
+
+    response = requests.get(
+        url_format(TOKEN),
+        headers={'user-agent': 'foursquare-archiver/0'},
+    )
+    items = response.json()['response']['recent']
+    for item in items:
+        timestamp = datetime.datetime.utcfromtimestamp(item['createdAt'])
+        filepath = '{}/friends/{}/{:02}/{}-{}.json'.format(
+            data_directory, timestamp.year, timestamp.month, item['createdAt'], item['id'])
+
+        if not os.path.isdir(os.path.dirname(filepath)):
+            os.makedirs(os.path.dirname(filepath))
+
+        with open(filepath, 'w') as fp:
+            json.dump(item, fp, indent=2)
+        os.utime(filepath, times=(item['createdAt'], item['createdAt']))
+
+
 if __name__ == '__main__':
     args = parser.parse_args()
 
@@ -64,3 +86,4 @@ if __name__ == '__main__':
         os.mkdir(args.data_directory)
 
     download_self_checkins(data_directory=args.data_directory)
+    download_friend_checkins(data_directory=args.data_directory)
