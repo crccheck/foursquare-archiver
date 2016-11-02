@@ -13,12 +13,10 @@ import datetime
 import logging
 import json
 import os
+import sys
+from glob import glob
 
 import requests
-
-
-URL_FORMAT = ('https://api.foursquare.com/v2/users/self/checkins?'
-              'limit=250&oauth_token={}&v=20160612&offset={}'.format)
 
 TOKEN = os.getenv('FOURSQUARE_OAUTH_TOKEN')
 
@@ -28,15 +26,36 @@ parser.add_argument('--data', dest='data_directory', default='data',
                     help='Path to directory to store JSON (default: data)')
 
 
-def main(data_directory='data', paginate=False):
+def get_most_recent(directory):
+    """Get the createdAt timestamp of the most recent data file."""
+    # This isn't the most efficient way, but it is terse
+    try:
+        all_json = glob(os.path.join(directory, '**/*.json'), recursive=True)
+        most_recent = sorted(all_json)[-1]
+        return os.path.basename(most_recent).split('-')[0]
+    except IndexError:
+        return None
+
+
+def download_self_checkins(data_directory='data', paginate=False):
+    url = 'https://api.foursquare.com/v2/users/self/checkins'
+    params = {
+        'limit': 250,
+        'oauth_token': TOKEN,
+        'v': '20160612',
+    }
+    latestTimestamp = get_most_recent(os.path.join(data_directory, 'self'))
+    if latestTimestamp:
+        params['afterTimestamp'] = latestTimestamp
     offset = 0
 
-    if not os.path.isdir(data_directory):
-        logging.debug('Creating data directory %s', data_directory)
-        os.mkdir(data_directory)
-
     while True:
-        response = requests.get(URL_FORMAT(TOKEN, offset))
+        params['offset'] = offset
+        response = requests.get(
+            url,
+            params=params,
+            headers={'user-agent': 'foursquare-archiver/0'},
+        )
         items = response.json()['response']['checkins']['items']
         if not items:
             logger.info('End of the rainbow reached. %s', offset)
@@ -44,11 +63,11 @@ def main(data_directory='data', paginate=False):
 
         for item in items:
             timestamp = datetime.datetime.utcfromtimestamp(item['createdAt'])
-            filepath = '{}/{}/{}-{}.json'.format(
-                data_directory, timestamp.year, item['createdAt'], item['id'])
+            filepath = '{}/self/{}/{:02}/{}-{}.json'.format(
+                data_directory, timestamp.year, timestamp.month, item['createdAt'], item['id'])
 
-            if not os.path.isdir(os.path.join(data_directory, str(timestamp.year))):
-                os.mkdir(os.path.join(data_directory, str(timestamp.year)))
+            if not os.path.isdir(os.path.dirname(filepath)):
+                os.makedirs(os.path.dirname(filepath))
 
             with open(filepath, 'w') as fp:
                 json.dump(item, fp, indent=2)
@@ -58,7 +77,50 @@ def main(data_directory='data', paginate=False):
         if not paginate:
             break
 
+    if sys.stdout.isatty():
+        print('Self: Downloaded: {} using timestamp: {}'
+              .format(len(items), latestTimestamp))
+
+
+def download_friend_checkins(data_directory='data', paginate=False):
+    url = 'https://api.foursquare.com/v2/checkins/recent'
+    params = {
+        'limit': 100,
+        'oauth_token': TOKEN,
+        'v': '20161101',
+    }
+    latestTimestamp = get_most_recent(os.path.join(data_directory, 'friends'))
+    if latestTimestamp:
+        params['afterTimestamp'] = latestTimestamp
+    response = requests.get(
+        url,
+        params=params,
+        headers={'user-agent': 'foursquare-archiver/0'},
+    )
+    if not response.ok:
+        logging.error(response.json())
+        return
+
+    items = response.json()['response']['recent']
+    for item in items:
+        timestamp = datetime.datetime.utcfromtimestamp(item['createdAt'])
+        filepath = '{}/friends/{}/{:02}/{}-{}.json'.format(
+            data_directory, timestamp.year, timestamp.month, item['createdAt'], item['id'])
+
+        if not os.path.isdir(os.path.dirname(filepath)):
+            os.makedirs(os.path.dirname(filepath))
+
+        with open(filepath, 'w') as fp:
+            json.dump(item, fp, indent=2)
+        os.utime(filepath, times=(item['createdAt'], item['createdAt']))
+
+    if sys.stdout.isatty():
+        print('Friends: Downloaded: {} using timestamp: {}'
+              .format(len(items), latestTimestamp))
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    main(data_directory=args.data_directory)
+
+    download_self_checkins(data_directory=args.data_directory)
+    download_friend_checkins(data_directory=args.data_directory)
