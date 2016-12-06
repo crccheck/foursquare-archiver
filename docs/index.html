@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Heatmap</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.js"></script>
@@ -40,16 +41,28 @@
 
 
   <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
-  <script src="https://leaflet.github.io/Leaflet.markercluster/example/realworld.10000.js"></script>
   <script>
-    var map = L.map('map').setView([-37.87, 175.475], 12);
-    var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const map = L.map('map').setView([-37.87, 175.475], 12)
+    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
-    addressPoints = addressPoints.map(function (p) { return [p[0], p[1]]; });
+   let heat
 
-    var heat = L.heatLayer(addressPoints).addTo(map);
+    function _process() {
+      const lines = this.value.split('\n')
+      const coords = lines
+        .map((line) => line.match(/(-?[\.0-9]+)[, ]+(-?[\.0-9]+)/))
+        .filter((x) => x)
+        .map(([match, lat, lng]) => [lat, lng])
+      if (heat) {
+        heat.remove()
+      }
+      heat = L.heatLayer(coords).addTo(map)
+    }
+
+    $('#data').on('change', _process);
+    _process.bind(document.getElementById('data'))();
   </script>
 </body>
 </html>
