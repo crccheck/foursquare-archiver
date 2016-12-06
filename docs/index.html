@@ -9,17 +9,17 @@
   <style>
     body {
       display: flex;
+      margin: 0;
     }
     .column {
       flex-basis: 50%;
+      height: 100vh;
     }
-    #map { height: 600px; }
     textarea {
       display: block;
       height: 100vh;
       width: 100%;
     }
-    a { color: #0077ff; }
   </style>
 </head>
 <body>
@@ -38,8 +38,6 @@
 </textarea>
   </div>
 
-
-
   <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
   <script>
     const map = L.map('map')
@@ -47,25 +45,26 @@
         attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map)
 
-   let heat
+    let heat
 
     function _process() {
-      // Reference:
-      // https://github.com/Leaflet/Leaflet.heat
       const lines = this.value.split('\n')
-      // TODO get intensity too
       const coords = lines
         .map((line) => line.match(/(-?[\.0-9]+)[, ]+(-?[\.0-9]+)([, ]+(\d)+)?/))
         .filter((x) => x)
         .map(([__, lat, lng, _2, intensity]) => [lat, lng, intensity || 1])
       if (heat) {
+        // TODO use heat.setLatLngs instead of destroying/recreating
         heat.remove()
       }
       const bounds = L.latLngBounds(coords)
       map.fitBounds(bounds)
-      heat = L.heatLayer(coords, {radius: 10}).addTo(map)
+      // Heatmap reference:
+      // https://github.com/Leaflet/Leaflet.heat
+      heat = L.heatLayer(coords, {radius: 10, blur: 10}).addTo(map)
     }
 
+    // this is the only thing I'm using jQuery for ¯\_(ツ)_/¯
     $('#data').on('change', _process)
     _process.bind(document.getElementById('data'))()
   </script>
