@@ -55,15 +55,15 @@
       const lines = this.value.split('\n')
       // TODO get intensity too
       const coords = lines
-        .map((line) => line.match(/(-?[\.0-9]+)[, ]+(-?[\.0-9]+)/))
+        .map((line) => line.match(/(-?[\.0-9]+)[, ]+(-?[\.0-9]+)([, ]+(\d)+)?/))
         .filter((x) => x)
-        .map(([match, lat, lng]) => [lat, lng])
+        .map(([__, lat, lng, _2, intensity]) => [lat, lng, intensity || 1])
       if (heat) {
         heat.remove()
       }
       const bounds = L.latLngBounds(coords)
       map.fitBounds(bounds)
-      heat = L.heatLayer(coords).addTo(map)
+      heat = L.heatLayer(coords, {radius: 10}).addTo(map)
     }
 
     $('#data').on('change', _process)
