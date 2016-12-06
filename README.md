@@ -6,6 +6,8 @@ Archive your Foursquare checkin data locally.
 This is a Python script for saving the json data from Foursuare's `checkins`
 resource https://developer.foursquare.com/docs/users/checkins .
 
+If you want to generate a heatmap of checkins, see [`csv.py`](./csv.py) and http://crccheck.github.io/foursquare-archiver/
+
 
 Getting started
 ---------------
