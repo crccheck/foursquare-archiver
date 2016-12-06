@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Heatmap</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      margin: 0;
+    }
+    .column {
+      flex-basis: 50%;
+      height: 100vh;
+    }
+    textarea {
+      display: block;
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map" class="column"></div>
+  <div class="column">
+    <textarea id="data" name="data">
+-37.8839, 175.3745188667, "571"
+-37.8869090667, 175.3657417333, "486"
+-37.8894207167, 175.4015351167, "807"
+-37.8927369333, 175.4087452333, "899"
+-37.90585105, 175.4453463833, "1273"
+-37.9064188833, 175.4441556833, "1258"
+-37.90584715, 175.4463564333, "1279"
+-37.9033391333, 175.4244005667, "1078"
+-37.9061991333, 175.4492620333, "1309"
+</textarea>
+  </div>
+
+  <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
+  <script>
+    const map = L.map('map')
+    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map)
+
+    let heat
+
+    function _process() {
+      const lines = this.value.split('\n')
+      const coords = lines
+        .map((line) => line.match(/(-?[\.0-9]+)[, ]+(-?[\.0-9]+)([, ]+(\d)+)?/))
+        .filter((x) => x)
+        .map(([__, lat, lng, _2, intensity]) => [lat, lng, intensity || 1])
+      if (heat) {
+        // TODO use heat.setLatLngs instead of destroying/recreating
+        heat.remove()
+      }
+      const bounds = L.latLngBounds(coords)
+      map.fitBounds(bounds)
+      // Heatmap reference:
+      // https://github.com/Leaflet/Leaflet.heat
+      heat = L.heatLayer(coords, {radius: 10, blur: 10}).addTo(map)
+    }
+
+    // this is the only thing I'm using jQuery for ¯\_(ツ)_/¯
+    $('#data').on('change', _process)
+    _process.bind(document.getElementById('data'))()
+  </script>
+</body>
+</html>
