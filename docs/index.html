@@ -42,15 +42,18 @@
 
   <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
   <script>
-    const map = L.map('map').setView([-37.87, 175.475], 12)
+    const map = L.map('map')
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    }).addTo(map)
 
    let heat
 
     function _process() {
+      // Reference:
+      // https://github.com/Leaflet/Leaflet.heat
       const lines = this.value.split('\n')
+      // TODO get intensity too
       const coords = lines
         .map((line) => line.match(/(-?[\.0-9]+)[, ]+(-?[\.0-9]+)/))
         .filter((x) => x)
@@ -58,11 +61,13 @@
       if (heat) {
         heat.remove()
       }
+      const bounds = L.latLngBounds(coords)
+      map.fitBounds(bounds)
       heat = L.heatLayer(coords).addTo(map)
     }
 
-    $('#data').on('change', _process);
-    _process.bind(document.getElementById('data'))();
+    $('#data').on('change', _process)
+    _process.bind(document.getElementById('data'))()
   </script>
 </body>
 </html>
