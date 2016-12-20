@@ -56,12 +56,13 @@ Then click out of box to force the map to redraw.
     // Heatmap reference:
     // https://github.com/Leaflet/Leaflet.heat
     const heat = L.heatLayer([], {radius: 10, blur: 10}).addTo(map)
+    const stripRegex = /["']/g
     const dataRegex = /(-?[\.0-9]+)[, ]+(-?[\.0-9]+)([, ]+(\d)+)?/
 
     function _process() {
       const lines = this.value.split('\n')
       const coords = lines
-        .map((line) => line.match(dataRegex))
+        .map((line) => line.replace(stripRegex, '').match(dataRegex))
         .filter((x) => x)
         .map(([__, lat, lng, _2, intensity]) => [lat, lng, intensity || 1])
       const bounds = L.latLngBounds(coords)
