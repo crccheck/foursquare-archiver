@@ -68,6 +68,11 @@ Then click out of box to force the map to redraw.
       const bounds = L.latLngBounds(coords)
       map.fitBounds(bounds)
       heat.setLatLngs(coords)
+
+      // Faux permalink. Don't actually read them in because that fights with
+      // the bounding box of the data.
+      document.location.hash = map.getBounds().toBBoxString()
+      map.on('moveend', () => document.location.hash = map.getBounds().toBBoxString())
     }
 
     document.getElementById('data').addEventListener('change', _process)
