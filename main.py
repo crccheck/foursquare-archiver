@@ -20,8 +20,25 @@ from glob import glob
 import requests
 
 TOKEN = os.getenv("FOURSQUARE_OAUTH_TOKEN")
+CLIENT_ID = os.getenv("FOURSQUARE_CLIENT_ID")
+CALLBACK_URL = "http://localhost:8000"
 
 logger = logging.getLogger(__name__)
+
+
+def print_auth_instructions():
+    if CLIENT_ID:
+        auth_url = (
+            f"https://foursquare.com/oauth2/authenticate"
+            f"?client_id={CLIENT_ID}&response_type=token&redirect_uri={CALLBACK_URL}"
+        )
+        print(f"\nGet a new token by visiting:\n  {auth_url}")
+        print("\nAfter approving, copy the access_token from the redirect URL and run:")
+    else:
+        print("\nSet FOURSQUARE_CLIENT_ID to get an auth URL, then run:")
+    print("  export FOURSQUARE_OAUTH_TOKEN=<token>\n")
+
+
 parser = argparse.ArgumentParser(description="Archive your Foursquare checkins")
 parser.add_argument(
     "--data",
@@ -66,6 +83,8 @@ def download_self_checkins(data_directory="data", paginate=False):
         )
         if not response.ok:
             logging.error(response.json())
+            if response.status_code in (401, 403):
+                print_auth_instructions()
             return
         items = response.json()["response"]["checkins"]["items"]
         if not items:
