@@ -46,8 +46,11 @@ def download_self_checkins(data_directory="data", paginate=False):
     url = "https://api.foursquare.com/v2/users/self/checkins"
     params = {
         "limit": 250,
-        "oauth_token": TOKEN,
         "v": "20160612",
+    }
+    headers = {
+        "user-agent": "foursquare-archiver/0",
+        "Authorization": f"Bearer {TOKEN}",
     }
     latestTimestamp = get_most_recent(os.path.join(data_directory, "self"))
     if latestTimestamp:
@@ -59,15 +62,18 @@ def download_self_checkins(data_directory="data", paginate=False):
         response = requests.get(
             url,
             params=params,
-            headers={"user-agent": "foursquare-archiver/0"},
+            headers=headers,
         )
+        if not response.ok:
+            logging.error(response.json())
+            return
         items = response.json()["response"]["checkins"]["items"]
         if not items:
             logger.info("End of the rainbow reached. %s", offset)
             break
 
         for item in items:
-            timestamp = datetime.datetime.utcfromtimestamp(item["createdAt"])
+            timestamp = datetime.datetime.fromtimestamp(item["createdAt"], datetime.UTC)
             filepath = "{}/self/{}/{:02}/{}-{}.json".format(
                 data_directory,
                 timestamp.year,
@@ -99,8 +105,11 @@ def download_friend_checkins(data_directory="data", paginate=False):
     url = "https://api.foursquare.com/v2/checkins/recent"
     params = {
         "limit": 100,
-        "oauth_token": TOKEN,
         "v": "20161101",
+    }
+    headers = {
+        "user-agent": "foursquare-archiver/0",
+        "Authorization": f"Bearer {TOKEN}",
     }
     latestTimestamp = get_most_recent(os.path.join(data_directory, "friends"))
     if latestTimestamp:
@@ -108,7 +117,7 @@ def download_friend_checkins(data_directory="data", paginate=False):
     response = requests.get(
         url,
         params=params,
-        headers={"user-agent": "foursquare-archiver/0"},
+        headers=headers,
     )
     if not response.ok:
         logging.error(response.json())
@@ -116,7 +125,7 @@ def download_friend_checkins(data_directory="data", paginate=False):
 
     items = response.json()["response"]["recent"]
     for item in items:
-        timestamp = datetime.datetime.utcfromtimestamp(item["createdAt"])
+        timestamp = datetime.datetime.fromtimestamp(item["createdAt"], datetime.UTC)
         filepath = "{}/friends/{}/{:02}/{}-{}.json".format(
             data_directory,
             timestamp.year,
