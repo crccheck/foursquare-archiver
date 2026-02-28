@@ -17,20 +17,24 @@ from glob import iglob
 
 
 def get_all_points(top, right, bottom, left):
-    all_json = iglob("data/**/*.json", recursive=True)
-    for path in all_json:
+    all_jsonl = iglob("data/**/*.jsonl", recursive=True)
+    for path in all_jsonl:
         with open(path) as fp:
-            data = json.load(fp)
+            for line in fp:
+                line = line.strip()
+                if not line:
+                    continue
+                data = json.loads(line)
 
-        if "venue" not in data:
-            continue
+                if "venue" not in data:
+                    continue
 
-        # restrict to a bounding box
-        if (
-            bottom < data["venue"]["location"]["lat"] < top
-            and left < data["venue"]["location"]["lng"] < right
-        ):
-            yield (data["venue"]["location"]["lat"], data["venue"]["location"]["lng"])
+                # restrict to a bounding box
+                if (
+                    bottom < data["venue"]["location"]["lat"] < top
+                    and left < data["venue"]["location"]["lng"] < right
+                ):
+                    yield (data["venue"]["location"]["lat"], data["venue"]["location"]["lng"])
 
 
 if __name__ == "__main__":

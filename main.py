@@ -10,6 +10,7 @@ TODO: better output when script is run
 """
 
 import argparse
+import collections
 import datetime
 import logging
 import json
@@ -46,20 +47,47 @@ parser.add_argument(
     default="data",
     help="Path to directory to store JSON (default: data)",
 )
+parser.add_argument(
+    "--no-resume",
+    action="store_true",
+    help="Ignore existing data and download all checkins from the beginning",
+)
 
 
 def get_most_recent(directory):
-    """Get the createdAt timestamp of the most recent data file."""
-    # This isn't the most efficient way, but it is terse
-    try:
-        all_json = glob(os.path.join(directory, "**/*.json"), recursive=True)
-        most_recent = sorted(all_json)[-1]
-        return os.path.basename(most_recent).split("-")[0]
-    except IndexError:
+    """Get the createdAt timestamp of the most recent entry in the latest JSONL file."""
+    jsonl_files = glob(os.path.join(directory, "*.jsonl"))
+    if not jsonl_files:
         return None
+    latest_file = sorted(jsonl_files)[-1]
+    last_line = None
+    with open(latest_file) as fp:
+        for line in fp:
+            line = line.strip()
+            if line:
+                last_line = line
+    if last_line is None:
+        return None
+    return json.loads(last_line)["createdAt"]
 
 
-def download_self_checkins(data_directory="data", paginate=False):
+def _write_jsonl_items(directory, items, mode):
+    """Group items by year and write to JSONL files."""
+    by_year = collections.defaultdict(list)
+    for item in items:
+        year = datetime.datetime.fromtimestamp(item["createdAt"], datetime.UTC).year
+        by_year[year].append(item)
+
+    os.makedirs(directory, exist_ok=True)
+    for year, year_items in by_year.items():
+        year_items.sort(key=lambda x: x["createdAt"])
+        filepath = os.path.join(directory, f"{year}.jsonl")
+        with open(filepath, mode) as fp:
+            for item in year_items:
+                fp.write(json.dumps(item) + "\n")
+
+
+def download_self_checkins(data_directory="data", resume=True):
     url = "https://api.foursquare.com/v2/users/self/checkins"
     params = {
         "limit": 250,
@@ -69,18 +97,16 @@ def download_self_checkins(data_directory="data", paginate=False):
         "user-agent": "foursquare-archiver/0",
         "Authorization": f"Bearer {TOKEN}",
     }
-    latestTimestamp = get_most_recent(os.path.join(data_directory, "self"))
-    if latestTimestamp:
+    dest = os.path.join(data_directory, "self")
+    latestTimestamp = get_most_recent(dest)
+    if resume and latestTimestamp:
         params["afterTimestamp"] = latestTimestamp
     offset = 0
+    all_items = []
 
     while True:
         params["offset"] = offset
-        response = requests.get(
-            url,
-            params=params,
-            headers=headers,
-        )
+        response = requests.get(url, params=params, headers=headers)
         if not response.ok:
             logging.error(response.json())
             if response.status_code in (401, 403):
@@ -90,37 +116,22 @@ def download_self_checkins(data_directory="data", paginate=False):
         if not items:
             logger.info("End of the rainbow reached. %s", offset)
             break
-
-        for item in items:
-            timestamp = datetime.datetime.fromtimestamp(item["createdAt"], datetime.UTC)
-            filepath = "{}/self/{}/{:02}/{}-{}.json".format(
-                data_directory,
-                timestamp.year,
-                timestamp.month,
-                item["createdAt"],
-                item["id"],
-            )
-
-            if not os.path.isdir(os.path.dirname(filepath)):
-                os.makedirs(os.path.dirname(filepath))
-
-            with open(filepath, "w") as fp:
-                json.dump(item, fp, indent=2)
-            os.utime(filepath, times=(item["createdAt"], item["createdAt"]))
+        all_items.extend(items)
         offset += 250
 
-        if not paginate:
-            break
+    if all_items:
+        mode = "a" if resume else "w"
+        _write_jsonl_items(dest, all_items, mode)
 
     if sys.stdout.isatty():
         print(
             "Self: Downloaded: {} using timestamp: {}".format(
-                len(items), latestTimestamp
+                len(all_items), latestTimestamp
             )
         )
 
 
-def download_friend_checkins(data_directory="data", paginate=False):
+def download_friend_checkins(data_directory="data"):
     url = "https://api.foursquare.com/v2/checkins/recent"
     params = {
         "limit": 100,
@@ -130,35 +141,18 @@ def download_friend_checkins(data_directory="data", paginate=False):
         "user-agent": "foursquare-archiver/0",
         "Authorization": f"Bearer {TOKEN}",
     }
-    latestTimestamp = get_most_recent(os.path.join(data_directory, "friends"))
+    dest = os.path.join(data_directory, "friends")
+    latestTimestamp = get_most_recent(dest)
     if latestTimestamp:
         params["afterTimestamp"] = latestTimestamp
-    response = requests.get(
-        url,
-        params=params,
-        headers=headers,
-    )
+    response = requests.get(url, params=params, headers=headers)
     if not response.ok:
         logging.error(response.json())
         return
 
     items = response.json()["response"]["recent"]
-    for item in items:
-        timestamp = datetime.datetime.fromtimestamp(item["createdAt"], datetime.UTC)
-        filepath = "{}/friends/{}/{:02}/{}-{}.json".format(
-            data_directory,
-            timestamp.year,
-            timestamp.month,
-            item["createdAt"],
-            item["id"],
-        )
-
-        if not os.path.isdir(os.path.dirname(filepath)):
-            os.makedirs(os.path.dirname(filepath))
-
-        with open(filepath, "w") as fp:
-            json.dump(item, fp, indent=2)
-        os.utime(filepath, times=(item["createdAt"], item["createdAt"]))
+    if items:
+        _write_jsonl_items(dest, items, "a")
 
     if sys.stdout.isatty():
         print(
@@ -171,5 +165,5 @@ def download_friend_checkins(data_directory="data", paginate=False):
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    download_self_checkins(data_directory=args.data_directory)
+    download_self_checkins(data_directory=args.data_directory, resume=not args.no_resume)
     download_friend_checkins(data_directory=args.data_directory)
