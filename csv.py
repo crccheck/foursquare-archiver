@@ -11,7 +11,6 @@ Example:
 """
 
 import json
-import sys
 from collections import Counter
 from glob import iglob
 
@@ -38,18 +37,32 @@ def get_all_points(top, right, bottom, left):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3:
-        lat1, lng1 = map(float, sys.argv[1].split(","))
-        lat2, lng2 = map(float, sys.argv[2].split(","))
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("bbox", nargs="+", help="Bounding box: two 'lat,lng' corners or one 'lng,lat,lng,lat' string (optionally prefixed with #)")
+    parser.add_argument("--margin", type=float, default=0.20, help="Fractional margin to expand the bounding box (default: 0.20)")
+    args = parser.parse_args()
+
+    if len(args.bbox) == 2:
+        lat1, lng1 = map(float, args.bbox[0].split(","))
+        lat2, lng2 = map(float, args.bbox[1].split(","))
         top = max(lat1, lat2)
         right = max(lng1, lng2)
         bottom = min(lat1, lat2)
         left = min(lng1, lng2)
-    elif len(sys.argv) == 2:
-        left, bottom, right, top = map(float, sys.argv[1].split(","))
+    elif len(args.bbox) == 1:
+        left, bottom, right, top = map(float, args.bbox[0].split(","))
     else:
-        print(__doc__)
+        parser.print_help()
         exit(1)
+
+    lat_margin = (top - bottom) * args.margin
+    lng_margin = (right - left) * args.margin
+    top += lat_margin
+    bottom -= lat_margin
+    right += lng_margin
+    left -= lng_margin
 
     counts = Counter(get_all_points(top, right, bottom, left))
     print("lat,lng,count")
